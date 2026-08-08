@@ -1,0 +1,23 @@
+2026-08-08 14:15:26,964 - api - INFO - Initialized Main API handler
+2026-08-08 14:15:26,967 - __main__ - INFO - Starting Anichin API server
+2026-08-08 14:15:27,079 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.1.18:5000
+2026-08-08 14:15:27,079 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2026-08-08 14:15:27,197 - werkzeug - INFO -  * Restarting with watchdog (windowsapi)
+2026-08-08 14:15:27,749 - api - INFO - Initialized Main API handler
+2026-08-08 14:15:27,751 - __main__ - INFO - Starting Anichin API server
+2026-08-08 14:15:27,755 - werkzeug - WARNING -  * Debugger is active!
+2026-08-08 14:15:27,765 - werkzeug - INFO -  * Debugger PIN: 104-604-069
+2026-08-08 14:16:40,728 - __main__ - INFO - Genres list request
+2026-08-08 14:16:40,729 - api.utils.parsing - INFO - Initialized Parsing session with URL: https://anichin.club
+2026-08-08 14:16:40,729 - api.utils.genre - INFO - Initialized Genres scraper
+2026-08-08 14:16:40,729 - api - INFO - Getting genres list
+2026-08-08 14:16:40,729 - api.utils.genre - INFO - Fetching list of genres
+2026-08-08 14:16:40,755 - werkzeug - INFO -  * Detected change in 'C:\\Program Files\\WindowsApps\\PythonSoftwareFoundation.Python.3.13_3.13.3824.0_x64__qbz5n2kfra8p0\\Lib\\netrc.py', reloading
+2026-08-08 14:16:41,366 - werkzeug - INFO -  * Restarting with watchdog (windowsapi)
+2026-08-08 14:16:41,816 - api - INFO - Initialized Main API handler
+2026-08-08 14:16:41,819 - __main__ - INFO - Starting Anichin API server
+2026-08-08 14:16:41,829 - werkzeug - WARNING -  * Debugger is active!
+2026-08-08 14:16:41,834 - werkzeug - INFO -  * Debugger PIN: 104-604-069
