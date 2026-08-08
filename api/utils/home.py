@@ -16,50 +16,21 @@ class Home(Parsing):
         logger.info(f"Initialized Home scraper for page: {page}")
 
     def __get_card(self, item: Tag) -> Optional[Dict[str, Union[str, int, None]]]:
-        """Extract card information from a home page item."""
+        """Extract card information from a home page item (new structure)."""
         try:
-            # Extract title
-            title_div = item.find("div", {"class": "tt"})
-            if not title_div:
-                logger.warning("Title div not found in home item")
+            # Find bsx container
+            bsx = item.find("div", {"class": "bsx"})
+            if not bsx:
+                logger.warning("bsx container not found in home item")
                 return None
 
-            # Extract headline
-            headline_element = title_div.find("h2")
-            headline = headline_element.text.strip() if headline_element else "Unknown"
-
-            # Clean title by removing child elements
-            for child in title_div.find_all():
-                child.extract()
-            title = title_div.text.strip() if title_div.text else "Unknown Title"
-
-            # Extract type
-            type_div = item.find("div", {"class": "typez"})
-            anime_type = type_div.text.strip() if type_div else "Unknown"
-
-            # Extract episode count
-            eps_span = item.find("span", {"class": "epx"})
-            eps = None
-            if eps_span:
-                eps_text = eps_span.text.strip()
-                eps_numbers = re.sub("[^0-9]", "", eps_text)
-                eps = int(eps_numbers) if eps_numbers else None
-
-            # Extract thumbnail
-            thumbnail_img = item.find("img", {"src": True})
-            thumbnail = ""
-            if thumbnail_img:
-                thumbnail = (
-                    thumbnail_img.get("data-lazy-src") or thumbnail_img.get("src") or ""
-                )
-
-            # Extract URL and slug
-            url_link = item.find("a", {"title": True})
-            if not url_link or not url_link.get("href"):
-                logger.warning("URL link not found in home item")
+            # Extract link and slug
+            link = bsx.find("a", href=True)
+            if not link or not link.get("href"):
+                logger.warning("Link not found in home item")
                 return None
 
-            url = url_link.get("href")
+            url = link.get("href")
             slug_path = urlparse(url).path
             slug = (
                 slug_path.split("/")[-2]
@@ -67,11 +38,63 @@ class Home(Parsing):
                 else slug_path.split("/")[-1]
             )
 
+            # Extract title from h2 inside div.tt
+            title_div = bsx.find("div", {"class": "tt"})
+            title = "Unknown Title"
+            headline = "Unknown"
+            
+            if title_div:
+                h2 = title_div.find("h2")
+                if h2:
+                    # Get full text and split to get both title and headline
+                    full_text = h2.text.strip()
+                    # Usually format is: "Title Episode X Subtitle Indonesia"
+                    # Extract just the title part (before "Episode" or similar keywords)
+                    if " Episode " in full_text:
+                        title = full_text.split(" Episode ")[0].strip()
+                        headline = full_text
+                    elif " Sub " in full_text:
+                        title = full_text.split(" Sub ")[0].strip()
+                        headline = full_text
+                    else:
+                        title = full_text
+                        headline = full_text
+
+            # Extract type
+            type_div = bsx.find("div", {"class": "typez"})
+            anime_type = type_div.text.strip() if type_div else "Unknown"
+
+            # Extract episode/status from div.bt
+            bt_div = bsx.find("div", {"class": "bt"})
+            eps = None
+            status = "Unknown"
+            
+            if bt_div:
+                status_text = bt_div.text.strip()
+                status = status_text
+                # Try to extract episode number
+                eps_match = re.search(r'(?:Ep|Episode)\s*(\d+)', status_text)
+                if eps_match:
+                    eps = int(eps_match.group(1))
+
+            # Extract thumbnail from img
+            img = bsx.find("img")
+            thumbnail = ""
+            if img:
+                # Try multiple attributes
+                thumbnail = (
+                    img.get("data-src") or 
+                    img.get("src") or 
+                    img.get("data-lazy-src") or
+                    ""
+                )
+
             card_data = {
                 "title": title,
                 "type": anime_type,
                 "headline": headline,
                 "eps": eps,
+                "status": status,
                 "thumbnail": thumbnail,
                 "slug": slug,
             }
@@ -86,28 +109,23 @@ class Home(Parsing):
     def __get_home(
         self, data: BeautifulSoup
     ) -> Dict[str, Union[List[Dict[str, Any]], int, str]]:
-        """Extract home page content from the data."""
+        """Extract home page content from the data (new structure)."""
         cards = []
         try:
-            content_sections = data.find_all("div", {"class": "bixbox bbnofrm"})
-            logger.info(f"Found {len(content_sections)} sections in home page")
+            # Find all bixbox sections
+            content_sections = data.find_all("div", {"class": "bixbox"})
+            logger.info(f"Found {len(content_sections)} bixbox sections in home page")
 
             for section in content_sections:
                 try:
-                    # Extract section name
-                    releases_div = section.find("div", "releases")
-                    if releases_div:
-                        section_element = releases_div.find()
-                        section_name = (
-                            section_element.text.lower().replace(" ", "_")
-                            if section_element
-                            else "unknown"
-                        )
-                    else:
-                        section_name = "unknown"
+                    # Extract section name from h3 or first header
+                    section_name = "unknown"
+                    header = section.find(["h1", "h2", "h3"])
+                    if header:
+                        section_name = header.text.lower().strip().replace(" ", "_")
 
-                    # Extract articles
-                    articles = section.find_all("article")
+                    # Find articles with class 'bs'
+                    articles = section.find_all("article", {"class": "bs"})
                     section_items = []
 
                     for article in articles:

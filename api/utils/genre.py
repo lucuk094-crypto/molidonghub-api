@@ -14,52 +14,65 @@ class Genres(Parsing):
         logger.info("Initialized Genres scraper")
 
     def __get_card(self, item: Tag) -> Optional[Dict[str, str]]:
-        """Extract card information from a genre page item."""
+        """Extract card information from a genre page item (new structure)."""
         try:
-            # Extract title
-            title_div = item.find("div", {"class": "tt"})
-            if not title_div:
-                logger.warning("Title div not found in genre item")
+            # Find bsx container
+            bsx = item.find("div", {"class": "bsx"})
+            if not bsx:
+                logger.warning("bsx container not found in genre item")
                 return None
 
-            # Extract headline
-            headline_element = title_div.find("h2")
-            headline = headline_element.text.strip() if headline_element else "Unknown"
-
-            # Clean title by removing child elements
-            for child in title_div.find_all():
-                child.extract()
-            title = title_div.text.strip() if title_div.text else "Unknown Title"
-
-            # Extract type
-            type_div = item.find("div", {"class": "typez"})
-            anime_type = type_div.text.strip() if type_div else "Unknown"
-
-            # Extract status
-            status_span = item.find("span", {"class": "epx"})
-            status = status_span.text.strip() if status_span else "Unknown"
-
-            # Extract thumbnail
-            thumbnail_img = item.find("img", {"src": True})
-            thumbnail = ""
-            if thumbnail_img:
-                thumbnail = (
-                    thumbnail_img.get("data-lazy-src") or thumbnail_img.get("src") or ""
-                )
-
-            # Extract URL and slug
-            url_link = item.find("a", {"title": True})
-            if not url_link or not url_link.get("href"):
-                logger.warning("URL link not found in genre item")
+            # Extract link and slug
+            link = bsx.find("a", href=True)
+            if not link or not link.get("href"):
+                logger.warning("Link not found in genre item")
                 return None
 
-            url = url_link.get("href")
+            url = link.get("href")
             slug_path = urlparse(url).path
             slug = (
                 slug_path.split("/")[-2]
                 if slug_path.endswith("/")
                 else slug_path.split("/")[-1]
             )
+
+            # Extract title from h2 inside div.tt
+            title_div = bsx.find("div", {"class": "tt"})
+            title = "Unknown Title"
+            headline = "Unknown"
+            
+            if title_div:
+                h2 = title_div.find("h2")
+                if h2:
+                    full_text = h2.text.strip()
+                    if " Episode " in full_text:
+                        title = full_text.split(" Episode ")[0].strip()
+                        headline = full_text
+                    elif " Sub " in full_text:
+                        title = full_text.split(" Sub ")[0].strip()
+                        headline = full_text
+                    else:
+                        title = full_text
+                        headline = full_text
+
+            # Extract type
+            type_div = bsx.find("div", {"class": "typez"})
+            anime_type = type_div.text.strip() if type_div else "Unknown"
+
+            # Extract status from div.bt
+            bt_div = bsx.find("div", {"class": "bt"})
+            status = bt_div.text.strip() if bt_div else "Unknown"
+
+            # Extract thumbnail
+            img = bsx.find("img")
+            thumbnail = ""
+            if img:
+                thumbnail = (
+                    img.get("data-src") or 
+                    img.get("src") or 
+                    img.get("data-lazy-src") or
+                    ""
+                )
 
             card_data = {
                 "title": title,
@@ -175,7 +188,8 @@ class Genres(Parsing):
                     "error": "List wrapper not found",
                 }
 
-            articles = wrapper.find_all("article")
+            # Find articles with class 'bs'
+            articles = wrapper.find_all("article", {"class": "bs"})
             cards = []
 
             for article in articles:
