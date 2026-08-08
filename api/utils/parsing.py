@@ -1,7 +1,7 @@
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from os import getenv
-from requests import Session, Response
+import cloudscraper
 import logging
 from typing import Optional, Dict, Any
 
@@ -11,12 +11,19 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 
-class Parsing(Session):
+class Parsing:
     def __init__(self) -> None:
-        super().__init__()
+        # Use cloudscraper instead of requests.Session to bypass Cloudflare
+        self.scraper = cloudscraper.create_scraper(
+            browser={
+                'browser': 'chrome',
+                'platform': 'windows',
+                'mobile': False
+            }
+        )
         self.url: str = "https://anichin.club"
         self.history_url: Optional[str] = None
-        logger.info(f"Initialized Parsing session with URL: {self.url}")
+        logger.info(f"Initialized Parsing session with CloudScraper for URL: {self.url}")
 
     def __get_html(self, slug: str, **kwargs: Any) -> Optional[str]:
         """Get HTML content from the specified slug."""
@@ -26,14 +33,16 @@ class Parsing(Session):
             else:
                 url = f"{self.url}/{slug}"
 
-            cookies = "cf_clearance=XIBMo7QdecdvAcdM8uzEOnK_2UnaTHJJ8RieN.AoMY4-1748586290-1.2.1.1-UH.LSXh9BmHpSLaJS_QMPgFflT778PdhoLS1KmyRjdmD6fyvBCwlbktmnaZXXzHZkrmtk.LqI2A6LBAMEeSIjUiSkZOoleahDZ5cEEE1IM9hpSYAVSNFikWmc1UscY6NdDU_BNsHdRklnGzIKXkZ.Sbynw3BuFQmjHEgcq53BG9OQRl4BOHmZIQ4KZnfqu1IBc8o0WDYBkW_fKQgcVrLD81HY_1sObt1jDOV1cfSHMvTUoKOaVyJjASKrps90RTeM0QJtZmbFE8MBynNbZeZipOueDnYCEqaNjbI5BakFWEIEQ.t8ymqTVH37ZI0BGmacY.UwliDAFTYbPahtY6_Ac0xJbuH8BbrK_5dW3cjuswE_25hq1m0s.uuTc68owr1"
-
             headers: Dict[str, str] = {
                 "User-Agent": getenv(
                     "USER_AGENT",
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
                 ),
-                "Cookie": cookies,
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.5",
+                "Accept-Encoding": "gzip, deflate, br",
+                "Connection": "keep-alive",
+                "Upgrade-Insecure-Requests": "1",
             }
 
             if kwargs.get("headers"):
@@ -41,11 +50,11 @@ class Parsing(Session):
             kwargs["headers"] = headers
 
             logger.debug(f"Making request to: {url}")
-            response: Response = self.get(url, **kwargs)
+            response = self.scraper.get(url, **kwargs)
             response.raise_for_status()  # Raise an exception for bad status codes
 
             self.history_url = url
-            logger.debug(f"Successfully fetched content from: {url}")
+            logger.debug(f"Successfully fetched content from: {url} (Status: {response.status_code})")
             return response.text
 
         except Exception as e:
